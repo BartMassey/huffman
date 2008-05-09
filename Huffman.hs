@@ -3,7 +3,9 @@
 --- [This program is licensed under the "3-clause ('new') BSD License"]
 --- Please see the end of this file for license terms.
 
-module Huffman (HTree, makeHTree, HTable, makeHTable, encode, decode)
+module Huffman (HTree, HTable, HInit(..),
+                makeHTree, makeHTable,
+                encode, decode)
 where
 
 import Data.List
@@ -23,15 +25,19 @@ newtype (Integral a) => Freq a b = Freq (a, HTree b)
 instance (Integral a, Eq b) => Ord (Freq a b) where
     Freq (c1, _) `compare` Freq (c2, _) = c1 `compare` c2
 
-makeHTree :: (Ord b) => [b] -> HTree b
-makeHTree = ht_extract . treeify . from_list . freq where
-    freq :: (Integral a, Ord b) => [b] -> [Freq a b]
+data HInit a = HInitNone | HInitList [a]
+
+makeHTree :: (Ord a) => HInit a -> [a] -> HTree a
+makeHTree init = ht_extract . treeify . from_list . freq where
     freq l = map make_hleaf (Map.toList tab) where
-        tab = foldl' accum Map.empty l
+        tab = foldl' accum (make_init init) l
         accum m k = Map.alter incr k m
         incr Nothing = Just 1
         incr (Just x) = Just (x + 1)
         make_hleaf (l, n) = Freq (n, HLeaf l)
+    make_init HInitNone = Map.empty
+    make_init (HInitList l) =
+        Map.fromList (map (\v -> (v, 0)) l)
     from_list :: (Integral a, Ord b) =>
                  [Freq a b] -> Heap.MinHeap (Freq a b)
     from_list = Heap.fromList
