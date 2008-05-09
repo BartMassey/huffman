@@ -20,31 +20,30 @@ newtype (Ord a) => HTable a = HTable (Map.Map a [Bool])
 newtype (Integral a) => Freq a b = Freq (a, HTree b)
     deriving Eq
 
-freq :: (Integral a, Ord b) => [b] -> [Freq a b]
-freq l = map make_hleaf (Map.toList tab) where
-    tab = foldl' accum Map.empty l
-    accum m k = Map.alter incr k m
-    incr Nothing = Just 1
-    incr (Just x) = Just (x + 1)
-    make_hleaf (l, n) = Freq (n, HLeaf l)
-
 instance (Integral a, Eq b) => Ord (Freq a b) where
     Freq (c1, _) `compare` Freq (c2, _) = c1 `compare` c2
 
 makeHTree :: (Ord b) => [b] -> HTree b
 makeHTree = ht_extract . treeify . from_list . freq where
+    freq :: (Integral a, Ord b) => [b] -> [Freq a b]
+    freq l = map make_hleaf (Map.toList tab) where
+        tab = foldl' accum Map.empty l
+        accum m k = Map.alter incr k m
+        incr Nothing = Just 1
+        incr (Just x) = Just (x + 1)
+        make_hleaf (l, n) = Freq (n, HLeaf l)
     from_list :: (Integral a, Ord b) =>
                  [Freq a b] -> Heap.MinHeap (Freq a b)
     from_list = Heap.fromList
     treeify h = treeify1 v' h' where
         (v', h') = Heap.extractHead h
-    treeify1 v h
-        | Heap.isEmpty h = v
-        | otherwise = treeify2 v v' h' where
-            (v', h') = Heap.extractHead h
-    treeify2 (Freq (c1, v1)) (Freq (c2, v2)) h = treeify h' where
-        v = Freq (c1 + c2, HNode v1 v2)
-        h' = Heap.insert v h
+    treeify1 v h | Heap.isEmpty h = v
+    treeify1 v h = treeify2 v v' h' where
+        (v', h') = Heap.extractHead h
+    treeify2 (Freq (c1, v1)) (Freq (c2, v2)) h =
+        treeify h' where
+            v = Freq (c1 + c2, HNode v1 v2)
+            h' = Heap.insert v h
     ht_extract (Freq (_, t)) = t
 
 makeHTable :: (Ord a) => HTree a -> HTable a
