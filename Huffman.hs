@@ -1,4 +1,4 @@
-module Huffman (HTree(..), makeHTree)
+module Huffman (HTree, makeHTree, HTable, makeHTable, encode)
 where
 
 import Data.List
@@ -25,6 +25,8 @@ instance (Integral a, Show a, Show b) => Show (HT a b) where
 
 data HTree a = HNode (HTree a) (HTree a)
              | HLeaf a
+
+newtype (Ord a) => HTable a = HTable (Map.Map a [Bool])
 
 freq :: (Integral a, Ord b) => [b] -> [HT a b]
 freq l = map make_hleaf (Map.toList tab) where
@@ -59,7 +61,10 @@ makeHTree = ht_extract . treeify . from_list . freq where
     ht_extract (HL {label = l}) =
         HLeaf l
 
--- encode :: (Ord b) => HTable a b -> [b] -> [Bool]
--- encode _ [] = []
--- encode h (e : es) = treewalk ++ encode h es where
+makeHTable :: (Ord a) => HTree a -> HTable a
+makeHTable t = HTable (walk Map.empty [] t) where
+    walk h p (HLeaf l) = Map.insert l (reverse p) h
+    walk h p (HNode l r) = walk (walk h (False : p) l) (True : p) r
 
+encode :: (Ord a) => HTable a -> [a] -> [Bool]
+encode (HTable h) = concatMap (fromJust . (flip Map.lookup) h)
