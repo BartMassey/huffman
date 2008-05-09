@@ -1,4 +1,4 @@
-module Huffman (HTree, makeHTree, HTable, makeHTable, encode)
+module Huffman (HTree, makeHTree, HTable, makeHTable, encode, decode)
 where
 
 import Data.List
@@ -13,15 +13,6 @@ data (Integral a) =>
            | HL { count :: a,
                   label :: b }
     deriving Eq
-
-instance (Integral a, Show a, Show b) => Show (HT a b) where
-    show h = show' 0 h where
-        show' i (HL {count = c, label = l}) =
-            replicate i ' ' ++ "<#" ++ show c ++ " " ++ show l ++ ">"
-        show' i (HN {count = c, left = l, right = r}) =
-            replicate i ' ' ++ "<#" ++ show c ++ "\n" ++
-            show' (i + 2) l ++ "\n" ++
-            show' (i + 2) r ++ ">"
 
 data HTree a = HNode (HTree a) (HTree a)
              | HLeaf a
@@ -68,3 +59,11 @@ makeHTable t = HTable (walk Map.empty [] t) where
 
 encode :: (Ord a) => HTable a -> [a] -> [Bool]
 encode (HTable h) = concatMap (fromJust . (flip Map.lookup) h)
+
+decode :: HTree a -> [Bool] -> [a]
+decode h = decode' h where
+    decode' (HLeaf s) l = s : decode h l
+    decode' _ [] = []
+    decode' (HNode left _) (False : l) = decode' left l
+    decode' (HNode _ right) (True : l) = decode' right l
+                                             
