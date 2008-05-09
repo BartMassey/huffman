@@ -1,4 +1,4 @@
-module Huffman
+module Huffman (HTree, makeHTree)
 where
 
 import Data.List
@@ -13,6 +13,15 @@ data (Integral a) =>
               | HLeaf { count :: a,
                         label :: b }
     deriving Eq
+
+instance (Integral a, Show a, Show b) => Show (HTree a b) where
+    show h = show' 0 h where
+        show' i (HLeaf {count = c, label = l}) =
+            replicate i ' ' ++ "<#" ++ show c ++ " " ++ show l ++ ">"
+        show' i (HNode {count = c, left = l, right = r}) =
+            replicate i ' ' ++ "<#" ++ show c ++ "\n" ++
+            show' (i + 2) l ++ "\n" ++
+            show' (i + 2) r ++ ">"
 
 freq :: (Integral a, Ord b) => [b] -> [HTree a b]
 freq l = map make_hleaf (Map.toList tab) where
