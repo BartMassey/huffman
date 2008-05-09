@@ -11,34 +11,30 @@ import Data.Maybe
 import qualified Data.Map as Map
 import qualified Data.Heap as Heap
 
-data (Integral a) =>
-    HT a b = HN { count :: a,
-                  left :: HT a b,
-                  right :: HT a b }
-           | HL { count :: a,
-                  label :: b }
-    deriving Eq
-
 data HTree a = HNode (HTree a) (HTree a)
              | HLeaf a
+               deriving Eq
 
 newtype (Ord a) => HTable a = HTable (Map.Map a [Bool])
 
-freq :: (Integral a, Ord b) => [b] -> [HT a b]
+newtype (Integral a) => Freq a b = Freq (a, HTree b)
+    deriving Eq
+
+freq :: (Integral a, Ord b) => [b] -> [Freq a b]
 freq l = map make_hleaf (Map.toList tab) where
     tab = foldl' accum Map.empty l
     accum m k = Map.alter incr k m
     incr Nothing = Just 1
     incr (Just x) = Just (x + 1)
-    make_hleaf (l, n) = HL { count = n, label = l }
+    make_hleaf (l, n) = Freq (n, HLeaf l)
 
-instance (Integral a, Eq b) => Ord (HT a b) where
-    t1 `compare` t2 = count t1 `compare` count t2
+instance (Integral a, Eq b) => Ord (Freq a b) where
+    Freq (c1, _) `compare` Freq (c2, _) = c1 `compare` c2
 
 makeHTree :: (Ord b) => [b] -> HTree b
 makeHTree = ht_extract . treeify . from_list . freq where
     from_list :: (Integral a, Ord b) =>
-                 [HT a b] -> Heap.MinHeap (HT a b)
+                 [Freq a b] -> Heap.MinHeap (Freq a b)
     from_list = Heap.fromList
     treeify h = treeify1 v' h' where
         (v', h') = Heap.extractHead h
@@ -46,16 +42,10 @@ makeHTree = ht_extract . treeify . from_list . freq where
         | Heap.isEmpty h = v
         | otherwise = treeify2 v v' h' where
             (v', h') = Heap.extractHead h
-    treeify2 v1 v2 h = treeify h' where
+    treeify2 (Freq (c1, v1)) (Freq (c2, v2)) h = treeify h' where
+        v = Freq (c1 + c2, HNode v1 v2)
         h' = Heap.insert v h
-        v = HN { count = count v1 + count v2,
-                 left = v1,
-                 right = v2 }
-    ht_extract :: (Integral a) => HT a b -> HTree b
-    ht_extract (HN {left = l, right = r}) =
-        HNode (ht_extract l) (ht_extract r)
-    ht_extract (HL {label = l}) =
-        HLeaf l
+    ht_extract (Freq (_, t)) = t
 
 makeHTable :: (Ord a) => HTree a -> HTable a
 makeHTable t = HTable (walk Map.empty [] t) where
