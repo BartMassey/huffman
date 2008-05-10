@@ -3,7 +3,7 @@
 --- [This program is licensed under the "3-clause ('new') BSD License"]
 --- Please see the end of this file for license terms.
 
-module Huffman (HTree, HTable, Freq, HInit(..),
+module Huffman (HTree, HTable, Freq(..), HInit(..),
                 freq, makeHTree, makeHTable,
                 encode, decode)
 where
@@ -19,41 +19,40 @@ data HTree a = HNode (HTree a) (HTree a)
 
 newtype (Ord a) => HTable a = HTable (Map.Map a [Bool])
 
-newtype (Integral a) => Fr a b = Fr (a, HTree b)
+newtype (Integral a) => Freq a b = Freq (a, HTree b)
     deriving Eq
-type Freq a b = [Fr a b]
 
-instance (Integral a, Eq b) => Ord (Fr a b) where
-    Fr (c1, _) `compare` Fr (c2, _) = c1 `compare` c2
+instance (Integral a, Eq b) => Ord (Freq a b) where
+    Freq (c1, _) `compare` Freq (c2, _) = c1 `compare` c2
 
 data HInit a = HInitNone | HInitList [a]
 
-freq :: (Integral a, Ord b) => HInit b -> [b] -> Freq a b
+freq :: (Integral a, Ord b) => HInit b -> [b] -> [Freq a b]
 freq init l = map make_hleaf (Map.toList tab) where
     accum m k = Map.alter incr k m
     incr Nothing = Just 1
     incr (Just x) = Just (x + 1)
-    make_hleaf (l, n) = Fr (n, HLeaf l)
+    make_hleaf (l, n) = Freq (n, HLeaf l)
     make_init HInitNone = Map.empty
     make_init (HInitList l) =
         Map.fromList (map (\v -> (v, 0)) l)
     tab = foldl' accum (make_init init) l
 
-makeHTree :: (Integral a, Ord b) => Freq a b -> HTree b
+makeHTree :: (Integral a, Ord b) => [Freq a b] -> HTree b
 makeHTree = ht_extract . treeify . from_list where
     from_list :: (Integral a, Ord b) =>
-                 Freq a b -> Heap.MinHeap (Fr a b)
+                 [Freq a b] -> Heap.MinHeap (Freq a b)
     from_list = Heap.fromList
     treeify h = treeify1 v' h' where
         (v', h') = Heap.extractHead h
     treeify1 v h | Heap.isEmpty h = v
     treeify1 v h = treeify2 v v' h' where
         (v', h') = Heap.extractHead h
-    treeify2 (Fr (c1, v1)) (Fr (c2, v2)) h =
+    treeify2 (Freq (c1, v1)) (Freq (c2, v2)) h =
         treeify h' where
-            v = Fr (c1 + c2, HNode v1 v2)
+            v = Freq (c1 + c2, HNode v1 v2)
             h' = Heap.insert v h
-    ht_extract (Fr (_, t)) = t
+    ht_extract (Freq (_, t)) = t
 
 makeHTable :: (Ord a) => HTree a -> HTable a
 makeHTable t = HTable (walk Map.empty [] t) where
