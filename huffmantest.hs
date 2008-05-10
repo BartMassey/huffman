@@ -11,11 +11,13 @@ huffman_data :: Int -> [Int]
 huffman_data n = take n (ruler i) where
     i = ceiling (1 + (logBase 2 (fromIntegral n)))
 
-roundtrip l = decode tree (encode table l) where
-    tree = makeHTree HInitNone l
+roundtrip n l = decode tree (encode table l) where
+    f = freq HInitNone (huffman_data n)
+    tree = makeHTree f
     table = makeHTable tree
 
 main = do
   [arg] <- getArgs
-  let h = huffman_data (read arg)
-  (putStrLn . show . (== h) . roundtrip) h
+  let n = read arg
+  let h = huffman_data n
+  (putStrLn . show . (== h) . roundtrip n) h
