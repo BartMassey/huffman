@@ -3,7 +3,21 @@
 --- [This program is licensed under the "3-clause ('new') BSD License"]
 --- Please see the end of this file for license terms.
 
-module Huffman (HTree, HTable, Freq(..), HInit(..),
+-- |This module provides a simple but efficient
+-- implementation of Huffman coding for compression and
+-- decompression.  The implementation builds the Huffman
+-- tree using the two-queue method, which could be linear
+-- time given a sorted list of frequency tables, but
+-- currently is heap-based only for correctness.  The tree
+-- is currently not canonical, but this is a bug and will be
+-- fixed shortly.
+--
+-- The typical use case is to construct a frequency table
+-- with `freq`, then construct the decoding tree from the
+-- frequency table with with `makeHTree`, then construct the
+-- encoding table from the decoding tree with `makeHTable`.
+-- This enables both `encode` and `decode`.
+module Huffman (HTree, HTable, Freq(..),
                 freq, makeHTree, makeHTable,
                 encode, decode)
 where
@@ -14,32 +28,47 @@ import Data.Sequence as Q
 import qualified Data.Map as Map
 import qualified Data.Heap as Heap
 
-data HTree a = HNode (HTree a) (HTree a)
-             | HLeaf a
+-- |The Huffman decoding tree.
+
+data HTree a = HNode (HTree a) (HTree a) -- ^ The left child
+                                         -- is taken when False
+                                         -- and the right child when True.
+             | HLeaf a -- ^ The leaves are the encoded symbols.
                deriving Eq
 
+-- |The Huffman encoding table.  For each encoded symbol,
+-- gives a list of Bool representing the prefix encoding
+-- of the symbol.
 newtype (Ord a) => HTable a = HTable (Map.Map a [Bool])
 
+-- |An entry in the frequency table, consisting of a count
+-- and a symbol.
 newtype (Integral a) => Freq a b = Freq (a, HTree b)
     deriving Eq
 
+-- |Ordering of frequency table entries is by increasing frequency.
 instance (Integral a, Eq b) => Ord (Freq a b) where
     Freq (c1, _) `compare` Freq (c2, _) = c1 `compare` c2
 
-data HInit a = HInitNone | HInitList [a]
-
-freq :: (Integral a, Ord b) => HInit b -> [b] -> [Freq a b]
+-- |Compile a frequency table.
+freq :: (Integral a, Ord b)
+     => [b] -- ^List of symbols which will be encoded but
+            -- do not occur (i.e. occur with zero frequency)
+            -- in the sample.
+     -> [b] -- ^Sample list of symbols to determine frequencies.
+     -> [Freq a b] -- ^Frequency table.
 freq init l = map make_hleaf (Map.toList tab) where
     accum m k = Map.alter incr k m
     incr Nothing = Just 1
     incr (Just x) = Just $! (x + 1)
     make_hleaf (l, n) = Freq (n, HLeaf l)
-    make_init HInitNone = Map.empty
-    make_init (HInitList l) =
-        Map.fromList (map (\v -> (v, 0)) l)
+    make_init l = Map.fromList (map (\v -> (v, 0)) l)
     tab = foldl' accum (make_init init) l
 
-makeHTree :: (Integral a, Ord b) => [Freq a b] -> HTree b
+-- |Compile a Huffman decoding tree.
+makeHTree :: (Integral a, Ord b)
+          => [Freq a b] -- ^Frequency table.
+          -> HTree b -- ^Decoding tree.
 makeHTree = treeify . from_list where
     from_list :: (Integral a, Ord b)
               => [Freq a b]
@@ -60,20 +89,30 @@ makeHTree = treeify . from_list where
     treeify2 (Freq (c1, v1)) (Freq (c2, v2)) (q, h) =
         treeify (q', h) where q' = Freq (c1 + c2, HNode v1 v2) <| q
 
-makeHTable :: (Ord a) => HTree a -> HTable a
+-- |Compile a Huffman encoding table.
+makeHTable :: (Ord a)
+           => HTree a -- ^Huffman encoding tree.
+           -> HTable a -- ^Huffman encoding table.
 makeHTable t = HTable (walk Map.empty [] t) where
     walk h p (HLeaf l) = Map.insert l (List.reverse p) h
     walk h p (HNode l r) = walk (walk h (False : p) l) (True : p) r
 
-encode :: (Ord a) => HTable a -> [a] -> [Bool]
--- encode (HTable h) = concatMap (fromJust . (flip Map.lookup) h)
+-- |Huffman-encode a list of symbols.
+encode :: (Ord a)
+       => HTable a -- ^Huffman encoding table.
+       -> [a] -- ^Symbols to be encoded.
+       -> [Bool] -- ^Encoding.
+--- encode (HTable h) = concatMap (fromJust . (flip Map.lookup) h)
 encode _ [] = []
 encode ht@(HTable h) (e : es) = encode' e' where
     e' = fromJust (Map.lookup e h)
     encode' (b : bs) = b : encode' bs
     encode' [] = encode ht es
 
-decode :: HTree a -> [Bool] -> [a]
+-- |Huffman-decode a code-string to its symbols.
+decode :: HTree a -- ^Decoding tree.
+       -> [Bool] -- ^Code-string.
+       -> [a] -- ^Decoded symbols.
 decode h = decode' h where
     decode' (HLeaf s) [] = [s]
     decode' (HLeaf s) l = s : decode h l
