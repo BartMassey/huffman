@@ -60,15 +60,19 @@ makeHTable t = HTable (walk Map.empty [] t) where
     walk h p (HNode l r) = walk (walk h (False : p) l) (True : p) r
 
 encode :: (Ord a) => HTable a -> [a] -> [Bool]
-encode (HTable h) = concatMap (fromJust . (flip Map.lookup) h)
+-- encode (HTable h) = concatMap (fromJust . (flip Map.lookup) h)
+encode _ [] = []
+encode ht@(HTable h) (e : es) = encode' e' where
+    e' = fromJust (Map.lookup e h)
+    encode' (b : bs) = b : encode' bs
+    encode' [] = encode ht es
 
 decode :: HTree a -> [Bool] -> [a]
 decode h = decode' h where
-    decode' _ [] = []
+    decode' (HLeaf s) [] = [s]
     decode' (HLeaf s) l = s : decode h l
     decode' (HNode left _) (False : l) = decode' left l
     decode' (HNode _ right) (True : l) = decode' right l
-                                             
 
 --- Redistribution and use in source and binary forms, with or
 --- without modification, are permitted provided that the
