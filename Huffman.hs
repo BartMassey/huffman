@@ -39,10 +39,6 @@ freq init l = map make_hleaf (Map.toList tab) where
         Map.fromList (map (\v -> (v, 0)) l)
     tab = foldl' accum (make_init init) l
 
---- XXX why isn't this in Sequence?
-qhead :: Seq a -> a
-qhead q = let e :< _ = viewl q in e
-
 makeHTree :: (Integral a, Ord b) => [Freq a b] -> HTree b
 makeHTree = treeify . from_list where
     from_list :: (Integral a, Ord b)
@@ -50,14 +46,14 @@ makeHTree = treeify . from_list where
               -> (Seq (Freq a b), Heap.MinHeap (Freq a b))
     from_list l = (Q.empty, Heap.fromList l)
     treeify (q, h) | Heap.isEmpty h ||
-                     (not (Q.null q) && qhead q < Heap.head h) =
+                     (not (Q.null q) && e < Heap.head h) =
         treeify1 e (es, h) where e :< es = viewl q
     treeify (q, h) =
         treeify1 e (q, es) where (e, es) = Heap.extractHead h
     treeify1 v (q, h) | Q.null q && Heap.isEmpty h =
         t where (Freq (_, t)) = v
     treeify1 v (q, h) | Heap.isEmpty h ||
-                        (not (Q.null q) && qhead q < Heap.head h) =
+                        (not (Q.null q) && e < Heap.head h) =
         treeify2 v e (es, h) where e :< es = viewl q
     treeify1 v (q, h) =
         treeify2 v e (q, es) where (e, es) = Heap.extractHead h
