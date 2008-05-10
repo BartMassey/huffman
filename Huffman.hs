@@ -8,8 +8,9 @@ module Huffman (HTree, HTable, Freq(..), HInit(..),
                 encode, decode)
 where
 
-import Data.List
+import Data.List as List
 import Data.Maybe
+import Data.Sequence as Q
 import qualified Data.Map as Map
 import qualified Data.Heap as Heap
 
@@ -38,25 +39,34 @@ freq init l = map make_hleaf (Map.toList tab) where
         Map.fromList (map (\v -> (v, 0)) l)
     tab = foldl' accum (make_init init) l
 
+--- XXX why isn't this in Sequence?
+qhead :: Seq a -> a
+qhead q = let e :< _ = viewl q in e
+
 makeHTree :: (Integral a, Ord b) => [Freq a b] -> HTree b
-makeHTree = ht_extract . treeify . from_list where
-    from_list :: (Integral a, Ord b) =>
-                 [Freq a b] -> Heap.MinHeap (Freq a b)
-    from_list = Heap.fromList
-    treeify h = treeify1 v' h' where
-        (v', h') = Heap.extractHead h
-    treeify1 v h | Heap.isEmpty h = v
-    treeify1 v h = treeify2 v v' h' where
-        (v', h') = Heap.extractHead h
-    treeify2 (Freq (c1, v1)) (Freq (c2, v2)) h =
-        treeify h' where
-            v = Freq (c1 + c2, HNode v1 v2)
-            h' = Heap.insert v h
-    ht_extract (Freq (_, t)) = t
+makeHTree = treeify . from_list where
+    from_list :: (Integral a, Ord b)
+              => [Freq a b]
+              -> (Seq (Freq a b), Heap.MinHeap (Freq a b))
+    from_list l = (Q.empty, Heap.fromList l)
+    treeify (q, h) | Heap.isEmpty h ||
+                     (not (Q.null q) && qhead q < Heap.head h) =
+        treeify1 e (es, h) where e :< es = viewl q
+    treeify (q, h) =
+        treeify1 e (q, es) where (e, es) = Heap.extractHead h
+    treeify1 v (q, h) | Q.null q && Heap.isEmpty h =
+        t where (Freq (_, t)) = v
+    treeify1 v (q, h) | Heap.isEmpty h ||
+                        (not (Q.null q) && qhead q < Heap.head h) =
+        treeify2 v e (es, h) where e :< es = viewl q
+    treeify1 v (q, h) =
+        treeify2 v e (q, es) where (e, es) = Heap.extractHead h
+    treeify2 (Freq (c1, v1)) (Freq (c2, v2)) (q, h) =
+        treeify (q', h) where q' = Freq (c1 + c2, HNode v1 v2) <| q
 
 makeHTable :: (Ord a) => HTree a -> HTable a
 makeHTable t = HTable (walk Map.empty [] t) where
-    walk h p (HLeaf l) = Map.insert l (reverse p) h
+    walk h p (HLeaf l) = Map.insert l (List.reverse p) h
     walk h p (HNode l r) = walk (walk h (False : p) l) (True : p) r
 
 encode :: (Ord a) => HTable a -> [a] -> [Bool]
