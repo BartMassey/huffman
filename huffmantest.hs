@@ -6,24 +6,22 @@
 
 import System.Environment
 import Data.Huffman
+import Data.Bits
 
--- ruler function
+-- improved ruler function
 ruler :: Int -> [Int]
-ruler 1 = [1]
-ruler n =  l ++ [n] ++ l where
-    l = ruler (n - 1)
-
-huffman_data :: Int -> [Int]
-huffman_data n = take n (ruler i) where
-    i = ceiling (1 + (logBase 2 (fromIntegral n)))
+ruler n = lowbit 0 : ruler (n + 1) where
+    lowbit i
+        | (n .&. bit i) /= 0 = i
+        | otherwise = lowbit (i + 1)
 
 roundtrip n l = decode tree (encode table l) where
-    f = freq [] (huffman_data n)
+    f = freq [] (take n (ruler 1))
     tree = makeHTree f
     table = makeHTable tree
 
 main = do
   [arg] <- getArgs
   let n = read arg
-  let h = huffman_data n
+  let h = take n (ruler 1)
   (putStrLn . show . (== h) . roundtrip n) h
