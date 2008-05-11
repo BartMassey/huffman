@@ -5,7 +5,7 @@
 --- distribution of this software for license terms.
 
 import System.Environment
-import Huffman
+import Data.Huffman
 
 -- ruler function
 ruler :: Int -> [Int]
