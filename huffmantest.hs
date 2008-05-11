@@ -18,7 +18,7 @@ huffman_data n = take n (ruler i) where
     i = ceiling (1 + (logBase 2 (fromIntegral n)))
 
 roundtrip n l = decode tree (encode table l) where
-    f = freq HInitNone (huffman_data n)
+    f = freq [] (huffman_data n)
     tree = makeHTree f
     table = makeHTable tree
 
