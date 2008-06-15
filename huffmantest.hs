@@ -15,13 +15,23 @@ ruler n = lowbit 0 : ruler (n + 1) where
         | (n .&. bit i) /= 0 = i
         | otherwise = lowbit (i + 1)
 
-roundtrip n l = decode tree (encode table l) where
-    f = freq [] (take n (ruler 1))
-    tree = makeHTree f
-    table = makeHTable tree
+toMaybe False _ = Nothing
+toMaybe True v = Just v
+
+roundtrip n =
+    toMaybe (l == l') n'
+    where
+      l = take n (ruler 1)
+      f = freq [] l
+      tree = makeHTree f
+      table = makeHTable tree
+      el = encode table l
+      n' = length el
+      l' = decode tree el
 
 main = do
   [arg] <- getArgs
   let n = read arg
-  let h = take n (ruler 1)
-  (putStrLn . show . (== h) . roundtrip n) h
+  case roundtrip n of
+    Nothing -> putStrLn "Failed"
+    Just n' -> putStrLn (show n')
