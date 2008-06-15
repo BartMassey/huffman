@@ -96,7 +96,7 @@ makeHTree = treeify . from_list where
     treeify1 v (q, h) =
         treeify2 v e (q, es) where (e, es) = Heap.extractHead h
     treeify2 (Freq (c1, v1)) (Freq (c2, v2)) (q, h) =
-        treeify (q', h) where q' = Freq (c1 + c2, HNode v1 v2) <| q
+        treeify (q', h) where q' = Freq (c1 + c2, HNode v2 v1) <| q
 
 -- |Compile a Huffman encoding table.
 makeHTable :: (Ord a)
