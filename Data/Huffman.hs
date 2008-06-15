@@ -46,9 +46,18 @@ newtype (Ord a) => HTable a = HTable (Map.Map a [Bool])
 newtype (Integral a) => Freq a b = Freq (a, HTree b)
     deriving Eq
 
--- |Ordering of frequency table entries is by increasing frequency.
-instance (Integral a, Eq b) => Ord (Freq a b) where
-    Freq (c1, _) `compare` Freq (c2, _) = c1 `compare` c2
+-- |Ordering of Huffman trees is lexicographic by height,
+-- then by leaf symbol ordering.
+instance (Ord a) => Ord (HTree a) where
+    HLeaf _ `compare` HNode _ _ = LT
+    HNode _ _ `compare` HLeaf _ = GT
+    HLeaf l1 `compare` HLeaf l2 = l1 `compare` l2
+    HNode l1 r1 `compare` HNode l2 r2 = (l1, r1) `compare` (l2, r2)
+
+-- |Ordering of frequency table entries is by increasing frequency,
+-- then by lexicographic ordering of trees.
+instance (Integral a, Ord b) => Ord (Freq a b) where
+    Freq f1 `compare` Freq f2 = f1 `compare` f2
 
 -- |Compile a frequency table.
 freq :: (Integral a, Ord b)
