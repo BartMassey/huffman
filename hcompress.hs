@@ -27,15 +27,16 @@ stringify l =
 	  accum_bit (k, a) v =
 	    (k + 1, a .|. (v `shiftL` k))
 
-
 compress instring = outstring where
   m = maxBound :: Word16
-  sample = (B.unpack . B.take (fromIntegral m)) instring
+  sample_size = 4 * (1 + fromIntegral m)
+  sample = (B.unpack . B.take sample_size) instring
   f = freq ([minBound..maxBound]::[Word8]) sample
   f' = recount m f
+  table_bytes = encode_table f'
   tree = makeHTree f'
   table = makeHTable tree
   l = encode table (B.unpack instring)
-  outstring = B.pack (stringify l)
+  data_bytes = B.pack (stringify l)
 
 main = B.interact compress
