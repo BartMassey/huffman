@@ -11,6 +11,7 @@ import Data.Bits
 import Data.Word
 import qualified Data.ByteString.Lazy as B
 import Data.Bits
+import qualified Data.Map as M
 
 stringify l =
   let (l', ls) = splitAt 8 l
@@ -26,11 +27,26 @@ stringify l =
 	  accum_bit (k, a) v =
 	    (k + 1, a .|. (v `shiftL` k))
 
+
 compress instring = outstring where
-  f = freq ([minBound..maxBound]::[Word8]) ((B.unpack . B.take 4096) instring)
+  f = freq ([minBound..maxBound]::[Word8]) ((B.unpack . B.take 40960) instring)
   tree = makeHTree f
   table = makeHTable tree
   l = encode table (B.unpack instring)
   outstring = B.pack (stringify l)
 
-main = B.interact compress
+main' = B.interact compress
+
+instance (Show a, Ord a) => Show (HTable a) where
+    show (HTable m) = show (M.toList m)
+
+instance (Integral a, Show b) => Show (Freq a b) where
+    show (Freq (n, HLeaf s)) = show (n, s)
+
+main = do
+  instring <- B.getContents
+  let f = freq ([minBound..maxBound]::[Word8]) ((B.unpack . B.take 40960) instring)
+  putStrLn (show f)
+--  let tree = makeHTree f
+--  let table = makeHTable tree
+--  putStrLn (show table)

@@ -17,7 +17,7 @@
 -- frequency table with with `makeHTree`, then construct the
 -- encoding table from the decoding tree with `makeHTable`.
 -- This enables both `encode` and `decode`.
-module Data.Huffman (HTree, HTable, Freq(..),
+module Data.Huffman (HTree(..), HTable(..), Freq(..),
                      freq, makeHTree, makeHTable,
                      encode, decode)
 where
