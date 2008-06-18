@@ -3,7 +3,7 @@ Description: Efficient Huffman encoding and decoding.
              Factored for easy experimentation and reuse.  Uses efficient
              two-heap Huffman tree construction.
 Build-Type: Simple
-Version: 0.1
+Version: 0.1.1
 License: BSD3
 License-File: COPYING
 Author: Bart Massey <bart@cs.pdx.edu>
@@ -15,4 +15,4 @@ Build-Depends: base, heap, containers
 Synopsis: Efficient Huffman encoding and decoding
 Exposed-Modules: Data.Huffman
 Stability: Alpha
-Extra-Source-Files: huffmantest.hs
+Extra-Source-Files: huffmantest.hs hcompress.hs
