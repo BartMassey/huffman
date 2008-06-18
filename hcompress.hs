@@ -21,14 +21,17 @@ encode_table f = (B.pack . concatMap encode_entry) f' where
 
 encode_data l = (B.pack . encode_bytes) l  where
   encode_bytes l
-      | length l' == 8 = encode_byte l' : encode_bytes ls
-      | otherwise = [encode_byte (l' ++ replicate (8 - length l') False)]
+      | not (null ls) = encode_byte l' : encode_bytes ls
+      | otherwise = encode_last_byte l'
       where
         (l', ls) = splitAt 8 l
-        encode_byte b = snd (foldl' accum_bit (0, 0) (map bitval b)) where
+        encode_byte b = foldl' accum 0 (map bitval b) where
           bitval True = 1
           bitval False = 0
-	  accum_bit (k, a) v = (k + 1, a .|. (v `shiftL` k))
+          accum v b = (v `shiftL` 1) .|. b
+        encode_last_byte l | length l < 8 = [ pad_byte (not (last l)) l ]
+        encode_last_byte l = [ encode_byte l, pad_byte (not (last l)) [] ]
+        pad_byte v l = encode_byte (l ++ replicate (8 - length l) v)
 
 compress instring = outstring where
   m = maxBound :: Word16
