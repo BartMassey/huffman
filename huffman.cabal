@@ -15,4 +15,4 @@ Build-Depends: base, heap, containers
 Synopsis: Efficient Huffman encoding and decoding
 Exposed-Modules: Data.Huffman
 Stability: Alpha
-Extra-Source-Files: huffmantest.hs hcompress.hs
+Extra-Source-Files: hcompress.hs

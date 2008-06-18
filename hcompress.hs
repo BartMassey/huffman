@@ -33,10 +33,9 @@ compress instring = outstring where
   sample = (B.unpack . B.take sample_size) instring
   f = freq ([minBound..maxBound]::[Word8]) sample
   f' = recount m f
-  table_bytes = encode_table f'
   tree = makeHTree f'
   table = makeHTable tree
   l = encode table (B.unpack instring)
-  data_bytes = B.pack (stringify l)
+  outstring = B.pack (stringify l)
 
 main = B.interact compress
