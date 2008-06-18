@@ -41,10 +41,16 @@ data HTree a = HNode (HTree a) (HTree a) -- ^ The left child
 -- of the symbol.
 newtype (Ord a) => HTable a = HTable (Map.Map a [Bool])
 
+instance (Show a, Ord a) => Show (HTable a) where
+    show (HTable m) = show (Map.toList m)
+
 -- |An entry in the frequency table, consisting of a count
 -- and a symbol.
 newtype (Integral a) => Freq a b = Freq (a, HTree b)
     deriving Eq
+
+instance (Integral a, Show b) => Show (Freq a b) where
+    show (Freq (n, HLeaf s)) = show (n, s)
 
 -- |Ordering of Huffman trees is lexicographic by height,
 -- then by leaf symbol ordering.
@@ -93,7 +99,7 @@ makeHTree = treeify . from_list where
     treeify (q, h) = treeify (q3, h2) where
         (Freq (c1, v1), qh1) = extract_min (q, h)
         (Freq (c2, v2), (q2, h2)) = extract_min qh1
-        q3 = Freq (c1 + c2, HNode v2 v1) <| q2
+        q3 = q2 |> Freq (c1 + c2, HNode v2 v1)
 
 -- |Compile a Huffman encoding table.
 makeHTable :: (Ord a)
