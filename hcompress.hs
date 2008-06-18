@@ -29,18 +29,13 @@ stringify l =
 
 
 compress instring = outstring where
-  f = freq ([minBound..maxBound]::[Word8]) ((B.unpack . B.take 40960) instring)
-  tree = makeHTree f
+  m = maxBound :: Word16
+  sample = (B.unpack . B.take (fromIntegral m)) instring
+  f = freq ([minBound..maxBound]::[Word8]) sample
+  f' = recount m f
+  tree = makeHTree f'
   table = makeHTable tree
   l = encode table (B.unpack instring)
   outstring = B.pack (stringify l)
 
 main = B.interact compress
-
-main' = do
-  instring <- B.getContents
-  let f = freq ([minBound..maxBound]::[Word8]) ((B.unpack . B.take 40960) instring)
-  putStrLn (show f)
-  let tree = makeHTree f
-  let table = makeHTable tree
-  putStrLn (show table)

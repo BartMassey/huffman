@@ -18,7 +18,7 @@
 -- encoding table from the decoding tree with `makeHTable`.
 -- This enables both `encode` and `decode`.
 module Data.Huffman (HTree(..), HTable(..), Freq(..),
-                     freq, makeHTree, makeHTable,
+                     freq, recount, makeHTree, makeHTable,
                      encode, decode)
 where
 
@@ -79,6 +79,17 @@ freq init l = map make_hleaf (Map.toList tab) where
     make_hleaf (l, n) = Freq (n, HLeaf l)
     make_init l = Map.fromList (map (\v -> (v, 0)) l)
     tab = foldl' accum (make_init init) l
+
+-- |Normalize a frequency table so that the largest count is
+-- scaled to the given value.
+recount :: (Integral a, Integral b, Ord c)
+        => a  -- ^Max normalized value.
+        -> [Freq b c]  -- ^Frequency table to normalize.
+        -> [Freq a c]  -- ^Normalized frequency table.
+recount m' f = map (rescale (foldl max 0 (map count f))) f where
+    count (Freq (c, _)) = c
+    rescale m (Freq (c, t)) =
+        Freq (ceiling (fromIntegral m' * fromIntegral c / fromIntegral m), t)
 
 -- |Compile a Huffman decoding tree.
 makeHTree :: (Integral a, Ord b)
