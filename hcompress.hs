@@ -9,23 +9,26 @@ import Data.List
 import Data.Huffman
 import Data.Bits
 import Data.Word
+import Data.Ord
 import qualified Data.ByteString.Lazy as B
 import Data.Bits
 import qualified Data.Map as M
 
-stringify l =
-  let (l', ls) = splitAt 8 l
-  in
-    case length l' of
-      8 -> encode_byte l' : stringify ls
-      _ -> [encode_byte (l' ++ replicate (8 - length l') False)]
-  where
-    encode_byte b = snd (foldl' accum_bit (0, 0) (map bitval b))
-        where
+encode_table f = (B.pack . concatMap encode_entry) f' where
+    f' = sortBy (comparing snd) (map fromFreq f)
+    encode_entry (c, _) = [ fromIntegral ((c `shiftR` 8) .&. 0xff),
+                            fromIntegral (c .&. 0xff) ]
+
+encode_data l = (B.pack . encode_bytes) l  where
+  encode_bytes l
+      | length l' == 8 = encode_byte l' : encode_bytes ls
+      | otherwise = [encode_byte (l' ++ replicate (8 - length l') False)]
+      where
+        (l', ls) = splitAt 8 l
+        encode_byte b = snd (foldl' accum_bit (0, 0) (map bitval b)) where
           bitval True = 1
           bitval False = 0
-	  accum_bit (k, a) v =
-	    (k + 1, a .|. (v `shiftL` k))
+	  accum_bit (k, a) v = (k + 1, a .|. (v `shiftL` k))
 
 compress instring = outstring where
   m = maxBound :: Word16
@@ -33,9 +36,11 @@ compress instring = outstring where
   sample = (B.unpack . B.take sample_size) instring
   f = freq ([minBound..maxBound]::[Word8]) sample
   f' = recount m f
+  table_string = encode_table f'
   tree = makeHTree f'
   table = makeHTable tree
   l = encode table (B.unpack instring)
-  outstring = B.pack (stringify l)
+  data_string = encode_data l
+  outstring = table_string `B.append` data_string
 
 main = B.interact compress

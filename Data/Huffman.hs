@@ -18,7 +18,8 @@
 -- encoding table from the decoding tree with `makeHTable`.
 -- This enables both `encode` and `decode`.
 module Data.Huffman (HTree, HTable, Freq,
-                     freq, recount, makeHTree, makeHTable,
+                     freq, fromFreq, toFreq, recount,
+                     makeHTree, makeHTable,
                      encode, decode)
 where
 
@@ -79,6 +80,15 @@ freq init l = map make_hleaf (Map.toList tab) where
     make_hleaf (l, n) = Freq (n, HLeaf l)
     make_init l = Map.fromList (map (\v -> (v, 0)) l)
     tab = foldl' accum (make_init init) l
+
+-- |Convert a frequency table entry to a tuple.  The entry
+-- must be for a symbol, not a tree.
+fromFreq :: (Integral a) => Freq a b -> (a, b)
+fromFreq (Freq (c, HLeaf s)) = (c, s)
+                             
+-- |Convert a tuple to a frequency table entry.
+toFreq :: (Integral a) => (a, b) -> Freq a b
+toFreq (c, s) = Freq (c, HLeaf s)
 
 -- |Normalize a frequency table so that the largest count is
 -- scaled down to the given value if necessary.
