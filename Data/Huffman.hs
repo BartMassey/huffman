@@ -81,15 +81,18 @@ freq init l = map make_hleaf (Map.toList tab) where
     tab = foldl' accum (make_init init) l
 
 -- |Normalize a frequency table so that the largest count is
--- scaled to the given value.
+-- scaled down to the given value if necessary.
 recount :: (Integral a, Integral b, Ord c)
         => a  -- ^Max normalized value.
         -> [Freq b c]  -- ^Frequency table to normalize.
         -> [Freq a c]  -- ^Normalized frequency table.
-recount m' f = map (rescale (foldl max 0 (map count f))) f where
+recount m' f = result where
+    m = maximum (map count f)
     count (Freq (c, _)) = c
-    rescale m (Freq (c, t)) =
-        Freq (ceiling (fromIntegral m' * fromIntegral c / fromIntegral m), t)
+    coerce (Freq (c, t)) = Freq (fromIntegral c, t)
+    rescale (Freq (c, t)) =
+        Freq (round (fromIntegral m' * fromIntegral c / fromIntegral m), t)
+    result = if m <= fromIntegral m' then map coerce f else map rescale f
 
 -- |Compile a Huffman decoding tree.
 makeHTree :: (Integral a, Ord b)
