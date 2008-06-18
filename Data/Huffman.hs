@@ -83,20 +83,17 @@ makeHTree = treeify . from_list where
               => [Freq a b]
               -> (Seq (Freq a b), Heap.MinHeap (Freq a b))
     from_list l = (Q.empty, Heap.fromList l)
-    treeify (q, h) | Heap.isEmpty h ||
-                     (not (Q.null q) && e < Heap.head h) =
-        treeify1 e (es, h) where e :< es = viewl q
-    treeify (q, h) =
-        treeify1 e (q, es) where (e, es) = Heap.extractHead h
-    treeify1 v (q, h) | Q.null q && Heap.isEmpty h =
-        t where (Freq (_, t)) = v
-    treeify1 v (q, h) | Heap.isEmpty h ||
-                        (not (Q.null q) && e < Heap.head h) =
-        treeify2 v e (es, h) where e :< es = viewl q
-    treeify1 v (q, h) =
-        treeify2 v e (q, es) where (e, es) = Heap.extractHead h
-    treeify2 (Freq (c1, v1)) (Freq (c2, v2)) (q, h) =
-        treeify (q', h) where q' = Freq (c1 + c2, HNode v2 v1) <| q
+    extract_min (q, h) | Heap.isEmpty h ||
+                         (not (Q.null q) && e < Heap.head h) =
+        (e, (es, h)) where e :< es = viewl q
+    extract_min (q, h) =
+        (e, (q, es)) where (e, es) = Heap.extractHead h
+    treeify (q, h) | Heap.isEmpty h && Q.length q == 1 = t
+                   where Freq (c, t) :< _ = viewl q
+    treeify (q, h) = treeify (q3, h2) where
+        (Freq (c1, v1), qh1) = extract_min (q, h)
+        (Freq (c2, v2), (q2, h2)) = extract_min qh1
+        q3 = Freq (c1 + c2, HNode v2 v1) <| q2
 
 -- |Compile a Huffman encoding table.
 makeHTable :: (Ord a)
