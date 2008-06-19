@@ -6,13 +6,14 @@
 
 import System.Environment
 import Data.List
-import Data.Huffman
 import Data.Bits
 import Data.Word
 import Data.Ord
 import qualified Data.ByteString.Lazy as B
 import Data.Bits
 import qualified Data.Map as M
+
+import Data.Huffman
 
 encode_table f = (B.pack . concatMap encode_entry) f' where
     f' = sortBy (comparing snd) (map fromFreq f)
