@@ -23,7 +23,7 @@ decode_table f = (decode 0 . B.unpack) f where
 decode_data s = first_bits ++ last_bits where
     l = B.unpack s
     first_bits = (concatMap decode_byte . init) l
-    decode_byte b = foldl decode_bit [] [7..0] where
+    decode_byte b = foldl decode_bit [] [0..7] where
         decode_bit v n = ((b `shiftR` n) .&. 1 == 1) : v
     last_bits = (concat . init . group . decode_byte . last) l
 
