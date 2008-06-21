@@ -145,10 +145,12 @@ encode ht@(HTable h) (e : es) = encode' e' where
 decode :: HTree a -- ^Decoding tree.
        -> [Bool] -- ^Code-string.
        -> [a] -- ^Decoded symbols.
-decode (HLeaf s) [] = [s]
-decode h@(HLeaf s) l = s : decode h l
-decode (HNode left _) (False : l) = decode left l
-decode (HNode _ right) (True : l) = decode right l
+decode h l = decode' h l where
+    decode' (HLeaf s) [] = [s]
+    --- XXX reset the tree when emitting a symbol
+    decode' (HLeaf s) l = s : decode h l
+    decode' (HNode left _) (False : l) = decode' left l
+    decode' (HNode _ right) (True : l) = decode' right l
 
 --- Redistribution and use in source and binary forms, with or
 --- without modification, are permitted provided that the
