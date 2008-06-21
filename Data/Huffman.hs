@@ -116,7 +116,7 @@ makeHTree l = treeify (Q.empty, l) where
     extract_min (q, e1 : es@(e2 : _)) | e2 > e1 = (e1, (q, es))
     extract_min (q, [e]) = (e, (q, []))
     treeify (q, []) | Q.length q == 1 = t
-                   where Freq (c, t) :< _ = viewl q
+                   where Freq (_, t) :< _ = viewl q
     treeify (q, h) = treeify (q3, h2) where
         (Freq (c1, v1), qh1) = extract_min (q, h)
         (Freq (c2, v2), (q2, h2)) = extract_min qh1
@@ -135,7 +135,6 @@ encode :: (Ord a)
        => HTable a -- ^Huffman encoding table.
        -> [a] -- ^Symbols to be encoded.
        -> [Bool] -- ^Encoding.
---- encode (HTable h) = concatMap (fromJust . (flip Map.lookup) h)
 encode _ [] = []
 encode ht@(HTable h) (e : es) = encode' e' where
     e' = fromJust (Map.lookup e h)
@@ -146,11 +145,10 @@ encode ht@(HTable h) (e : es) = encode' e' where
 decode :: HTree a -- ^Decoding tree.
        -> [Bool] -- ^Code-string.
        -> [a] -- ^Decoded symbols.
-decode h = decode' h where
-    decode' (HLeaf s) [] = [s]
-    decode' (HLeaf s) l = s : decode h l
-    decode' (HNode left _) (False : l) = decode' left l
-    decode' (HNode _ right) (True : l) = decode' right l
+decode (HLeaf s) [] = [s]
+decode h@(HLeaf s) l = s : decode h l
+decode (HNode left _) (False : l) = decode left l
+decode (HNode _ right) (True : l) = decode right l
 
 --- Redistribution and use in source and binary forms, with or
 --- without modification, are permitted provided that the

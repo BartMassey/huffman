@@ -4,14 +4,11 @@
 --- Please see the file COPYING in the source
 --- distribution of this software for license terms.
 
-import System.Environment
 import Data.List
 import Data.Bits
 import Data.Word
 import Data.Ord
 import qualified Data.ByteString.Lazy as B
-import Data.Bits
-import qualified Data.Map as M
 
 import Data.Huffman
 
