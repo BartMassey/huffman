@@ -110,13 +110,14 @@ makeHTree :: (Integral a, Ord b)
                         -- makeHTree will fail with a pattern match error.
           -> HTree b -- ^Decoding tree.
 makeHTree l = treeify (Q.empty, l) where
-    extract_min (q, h) | List.null h || (not (Q.null q) && e < head h) =
-        (e, (es, h)) where e :< es = viewl q
-    --- XXX Pattern match error on misordered frequency table.
-    extract_min (q, e1 : es@(e2 : _)) | e2 > e1 = (e1, (q, es))
-    extract_min (q, [e]) = (e, (q, []))
-    treeify (q, []) | Q.length q == 1 = t
-                   where Freq (_, t) :< _ = viewl q
+    extract_min (_, (e1 : e2 : _)) | e2 < e1 =
+        error "frequency table out of order"
+    extract_min (q, e1 : es) | Q.null q || e1 < q1 = (e1, (q, es)) where
+        q1 :< _ = viewl q
+    extract_min (q, h) = (q1, (qs, h)) where
+        q1 :< qs = viewl q
+    treeify (q, []) | Q.null qs = t where
+        Freq (_, t) :< qs = viewl q
     treeify (q, h) = treeify (q3, h2) where
         (Freq (c1, v1), qh1) = extract_min (q, h)
         (Freq (c2, v2), (q2, h2)) = extract_min qh1
