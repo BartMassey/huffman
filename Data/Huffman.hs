@@ -27,7 +27,6 @@ import Data.List as List
 import Data.Maybe
 import Data.Sequence as Q
 import qualified Data.Map as Map
-import qualified Data.Heap as Heap
 
 -- |The Huffman decoding tree.
 
@@ -106,19 +105,17 @@ recount m' f = result where
 
 -- |Compile a Huffman decoding tree.
 makeHTree :: (Integral a, Ord b)
-          => [Freq a b] -- ^Frequency table.
+          => [Freq a b] -- ^Frequency table.  Must be in
+                        -- non-descending order by frequency; otherwise
+                        -- makeHTree will fail with a pattern match error.
           -> HTree b -- ^Decoding tree.
-makeHTree = treeify . from_list where
-    from_list :: (Integral a, Ord b)
-              => [Freq a b]
-              -> (Seq (Freq a b), Heap.MinHeap (Freq a b))
-    from_list l = (Q.empty, Heap.fromList l)
-    extract_min (q, h) | Heap.isEmpty h ||
-                         (not (Q.null q) && e < Heap.head h) =
+makeHTree l = treeify (Q.empty, l) where
+    extract_min (q, h) | List.null h || (not (Q.null q) && e < head h) =
         (e, (es, h)) where e :< es = viewl q
-    extract_min (q, h) =
-        (e, (q, es)) where (e, es) = Heap.extractHead h
-    treeify (q, h) | Heap.isEmpty h && Q.length q == 1 = t
+    --- XXX Pattern match error on misordered frequency table.
+    extract_min (q, e1 : es@(e2 : _)) | e2 > e1 = (e1, (q, es))
+    extract_min (q, [e]) = (e, (q, []))
+    treeify (q, []) | Q.length q == 1 = t
                    where Freq (c, t) :< _ = viewl q
     treeify (q, h) = treeify (q3, h2) where
         (Freq (c1, v1), qh1) = extract_min (q, h)

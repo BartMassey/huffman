@@ -30,7 +30,7 @@ decode_data s = first_bits ++ last_bits where
 uncompress instring = outstring where
   (table_string, data_string) = B.splitAt 512 instring
   f = decode_table table_string :: [Freq Word16 Word8]
-  tree = makeHTree f
+  tree = (makeHTree . sort) f
   l = decode_data data_string
   outstring = B.pack (decode tree l)
 
