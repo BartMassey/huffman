@@ -27,7 +27,7 @@ where
 import Data.List
 import Data.Maybe
 import Data.Sequence as Q (ViewL(..), (|>), viewl, empty, null)
-import Data.Map as M (Map, toList, fromList, empty, insert, lookup, alter)
+import Data.Map as M (Map, empty, toList, fromList, insert, lookup, alter)
 import Data.Ord
 import Data.Function
 
