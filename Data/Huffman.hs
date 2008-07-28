@@ -20,13 +20,16 @@
 module Data.Huffman (HTree, HTable, Freq,
                      freq, fromFreq, toFreq, recount,
                      makeHTree, makeHTable,
-                     encode, decode)
+                     encode, decode,
+                     canonizeHTable)
 where
 
-import Data.List as List
+import Data.List
 import Data.Maybe
-import Data.Sequence as Q
-import qualified Data.Map as Map
+import Data.Sequence as Q (ViewL(..), (|>), viewl, empty, null)
+import Data.Map as M (Map, toList, fromList, empty, insert, lookup, alter)
+import Data.Ord
+import Data.Function
 
 -- |The Huffman decoding tree.
 
@@ -39,10 +42,10 @@ data HTree a = HNode (HTree a) (HTree a) -- ^ The left child
 -- |The Huffman encoding table.  For each encoded symbol,
 -- gives a list of Bool representing the prefix encoding
 -- of the symbol.
-newtype (Ord a) => HTable a = HTable (Map.Map a [Bool])
+newtype (Ord a) => HTable a = HTable (Map a [Bool])
 
 instance (Show a, Ord a) => Show (HTable a) where
-    show (HTable m) = show (Map.toList m)
+    show (HTable m) = show (toList m)
 
 -- |An entry in the frequency table, consisting of a count
 -- and a symbol.
@@ -72,12 +75,12 @@ freq :: (Integral a, Ord b)
             -- in the sample.
      -> [b] -- ^Sample list of symbols to determine frequencies.
      -> [Freq a b] -- ^Frequency table.
-freq init l = map make_hleaf (Map.toList tab) where
-    accum m k = Map.alter incr k m
+freq init l = map make_hleaf (toList tab) where
+    accum m k = alter incr k m
     incr Nothing = Just 1
     incr (Just x) = Just $! (x + 1)
     make_hleaf (l, n) = Freq (n, HLeaf l)
-    make_init l = Map.fromList (map (\v -> (v, 0)) l)
+    make_init l = fromList (map (\v -> (v, 0)) l)
     tab = foldl' accum (make_init init) l
 
 -- |Convert a frequency table entry to a tuple.  The entry
@@ -127,8 +130,8 @@ makeHTree l = treeify (Q.empty, l) where
 makeHTable :: (Ord a)
            => HTree a -- ^Huffman encoding tree.
            -> HTable a -- ^Huffman encoding table.
-makeHTable t = HTable (walk Map.empty [] t) where
-    walk h p (HLeaf l) = Map.insert l (List.reverse p) h
+makeHTable t = HTable (walk M.empty [] t) where
+    walk h p (HLeaf l) = M.insert l (reverse p) h
     walk h p (HNode l r) = walk (walk h (False : p) l) (True : p) r
 
 -- |Huffman-encode a list of symbols.
@@ -138,7 +141,7 @@ encode :: (Ord a)
        -> [Bool] -- ^Encoding.
 encode _ [] = []
 encode ht@(HTable h) (e : es) = encode' e' where
-    e' = fromJust (Map.lookup e h)
+    e' = fromJust (M.lookup e h)
     encode' (b : bs) = b : encode' bs
     encode' [] = encode ht es
 
@@ -152,6 +155,24 @@ decode h l = decode' h l where
     decode' (HLeaf s) l = s : decode h l
     decode' (HNode left _) (False : l) = decode' left l
     decode' (HNode _ right) (True : l) = decode' right l
+
+canonizeHTable :: (Ord a) => HTable a -> HTable a
+canonizeHTable (HTable m) =
+    HTable . fromList . reorder . toList $ m where
+        reorder = snd
+                . foldl' recount ([], [])
+                . sort
+                . map (\(sym, code) -> (length code, sym))
+        recount (cur, l) (cl, sym) = (cur', (sym, cur') : l) where
+            cur' = if length cur == cl
+                   then incl cur
+                   else cur ++ replicate (cl - length cur) False
+            incl l = addend where
+                (False, addend) = foldl' addc (True, []) (reverse l)
+                addc (False, bits) False = (False, False : bits)
+                addc (False, bits) True = (False, True : bits)
+                addc (True, bits) False = (False, True : bits)
+                addc (True, bits) True = (True, False : bits)
 
 --- Redistribution and use in source and binary forms, with or
 --- without modification, are permitted provided that the
