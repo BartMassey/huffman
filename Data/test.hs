@@ -20,7 +20,9 @@ r k n = do
 
 main = do
   l <- r 10 256
-  let f = freq ['a'..'k'] l
-  let tree = makeHTree (sort f)
+  let f = sort . freq ['a'..'k'] $ l
+  print f
+  let tree = makeHTree f
   let tab = makeHTable tree
-  print tab
+  let tab' = canonizeHTable tab
+  print tab'

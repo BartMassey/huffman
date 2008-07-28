@@ -163,16 +163,17 @@ canonizeHTable (HTable m) =
                 . foldl' recount ([], [])
                 . sort
                 . map (\(sym, code) -> (length code, sym))
-        recount (cur, l) (cl, sym) = (cur', (sym, cur') : l) where
-            cur' = if length cur == cl
-                   then incl cur
-                   else cur ++ replicate (cl - length cur) False
-            incl l = addend where
-                (False, addend) = foldl' addc (True, []) (reverse l)
-                addc (False, bits) False = (False, False : bits)
-                addc (False, bits) True = (False, True : bits)
-                addc (True, bits) False = (False, True : bits)
-                addc (True, bits) True = (True, False : bits)
+        recount (cur, l) (cl, sym)
+            | length cur == cl = (incl cur, (sym, cur) : l)
+            | otherwise =
+                let cur' = cur ++ replicate (cl - length cur) False in
+                    (incl cur', (sym, cur') : l)
+        incl l = addend where
+            (_, addend) = foldl' addc (True, []) (reverse l)
+            addc (False, bits) False = (False, False : bits)
+            addc (False, bits) True = (False, True : bits)
+            addc (True, bits) False = (False, True : bits)
+            addc (True, bits) True = (True, False : bits)
 
 --- Redistribution and use in source and binary forms, with or
 --- without modification, are permitted provided that the
