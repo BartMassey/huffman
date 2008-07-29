@@ -33,11 +33,11 @@ import Data.Function
 
 -- |The Huffman decoding tree.
 
-data HTree a = HNode (HTree a) (HTree a) -- ^ The left child
-                                         -- is taken when False
+data HTree a = HNode (HTree a) (HTree a) -- ^ The left child is
+                                         -- taken when False
                                          -- and the right child when True.
              | HLeaf a -- ^ The leaves are the encoded symbols.
-               deriving Eq
+             deriving (Eq, Show)
 
 -- |The Huffman encoding table.  For each encoded symbol,
 -- gives a list of Bool representing the prefix encoding
@@ -146,15 +146,17 @@ encode ht@(HTable h) (e : es) = encode' e' where
     encode' [] = encode ht es
 
 -- |Huffman-decode a code-string to its symbols.
-decode :: HTree a -- ^Decoding tree.
+decode :: (Show a)
+       => HTree a -- ^Decoding tree.
        -> [Bool] -- ^Code-string.
        -> [a] -- ^Decoded symbols.
-decode h l = decode' h l where
-    decode' (HLeaf s) [] = [s]
+decode h [] = []
+decode h l0 = decode' h l0 where
     --- XXX reset the tree when emitting a symbol
     decode' (HLeaf s) l = s : decode h l
     decode' (HNode left _) (False : l) = decode' left l
     decode' (HNode _ right) (True : l) = decode' right l
+    decode' _ _ = error "decode of invalid bitstring"
 
 -- |Transform an HTable to "canonical" form, in
 -- which codes are allocated in length-lex order.
