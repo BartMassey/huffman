@@ -156,13 +156,17 @@ decode h l = decode' h l where
     decode' (HNode left _) (False : l) = decode' left l
     decode' (HNode _ right) (True : l) = decode' right l
 
+-- |Transform an HTable to "canonical" form, in
+-- which codes are allocated in length-lex order.
 canonizeHTable :: (Ord a) => HTable a -> HTable a
 canonizeHTable (HTable m) =
-    HTable . fromList . reorder . toList $ m where
-        reorder = snd
-                . foldl' recount ([], [])
-                . sort
-                . map (\(sym, code) -> (length code, sym))
+    HTable . fromList
+           . snd
+           . foldl' recount ([], [])
+           . sort
+           . map (\(sym, code) -> (length code, sym))
+           . toList $ m
+    where
         recount (cur, l) (cl, sym)
             | length cur == cl = (incl cur, (sym, cur) : l)
             | otherwise =
@@ -174,6 +178,7 @@ canonizeHTable (HTable m) =
             addc (False, bits) True = (False, True : bits)
             addc (True, bits) False = (False, True : bits)
             addc (True, bits) True = (True, False : bits)
+
 
 --- Redistribution and use in source and binary forms, with or
 --- without modification, are permitted provided that the
