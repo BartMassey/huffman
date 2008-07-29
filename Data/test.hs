@@ -25,4 +25,6 @@ main = do
   let tree = makeHTree f
   let tab = makeHTable tree
   let tab' = canonizeHTable tab
-  print tab'
+  let tree' = reconstructHTree tab'
+  let tab'' = makeHTable tree'
+  print (tab'' == tab')

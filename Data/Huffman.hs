@@ -21,7 +21,7 @@ module Data.Huffman (HTree, HTable, Freq,
                      freq, fromFreq, toFreq, recount,
                      makeHTree, makeHTable,
                      encode, decode,
-                     canonizeHTable)
+                     canonizeHTable, reconstructHTree)
 where
 
 import Data.List
@@ -42,7 +42,7 @@ data HTree a = HNode (HTree a) (HTree a) -- ^ The left child
 -- |The Huffman encoding table.  For each encoded symbol,
 -- gives a list of Bool representing the prefix encoding
 -- of the symbol.
-newtype (Ord a) => HTable a = HTable (Map a [Bool])
+newtype (Ord a) => HTable a = HTable (Map a [Bool]) deriving Eq
 
 instance (Show a, Ord a) => Show (HTable a) where
     show (HTable m) = show (toList m)
@@ -179,6 +179,21 @@ canonizeHTable (HTable m) =
             addc (True, bits) False = (False, True : bits)
             addc (True, bits) True = (True, False : bits)
 
+-- |Transform an HTable back to an HTree.  The HTable must
+-- have the property that it will produce an HTree with no
+-- empty leaves.  Any HTable produced from an HTree will
+-- have this property; (reconstructHTree . makeHTable)
+-- should be the identity on HTrees, and (makeHTable
+-- . reconstructHTree) should be the identity on HTables.
+reconstructHTree :: (Ord a) => HTable a -> HTree a
+reconstructHTree (HTable m) = reconstruct . M.toList $ m where
+    reconstruct [] = error "makeHTreeFromHTable on ill-formed HTable"
+    reconstruct [(sym, [])] = HLeaf sym
+    reconstruct l = (HNode `on` reconstruct) left right where
+        (left, right) = foldl' split ([], []) l
+        split (l, r) (sym, bit : bits)
+            | bit = (l, (sym, bits) : r)
+            | otherwise = ((sym, bits) : l, r)
 
 --- Redistribution and use in source and binary forms, with or
 --- without modification, are permitted provided that the
