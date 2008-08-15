@@ -21,7 +21,7 @@ module Data.Huffman (HTree, HTable, Freq,
                      freq, fromFreq, toFreq, recount,
                      makeHTree, makeHTable,
                      encode, decode,
-                     canonizeHTable, reconstructHTree)
+                     reconstructHTree)
 where
 
 import Data.List
@@ -110,17 +110,17 @@ recount m' f = result where
 makeHTree :: (Integral a, Ord b)
           => [Freq a b] -- ^Frequency table.  Must be in
                         -- non-descending order by frequency; otherwise
-                        -- makeHTree will fail with a pattern match error.
+                        -- makeHTree will fail.
           -> HTree b -- ^Decoding tree.
 makeHTree l = treeify (Q.empty, l) where
-    extract_min (_, (e1 : e2 : _)) | e2 < e1 =
-        error "frequency table out of order"
     extract_min (q, e1 : es) | Q.null q || e1 < q1 = (e1, (q, es)) where
         q1 :< _ = viewl q
     extract_min (q, h) = (q1, (qs, h)) where
         q1 :< qs = viewl q
     treeify (q, []) | Q.null qs = t where
         Freq (_, t) :< qs = viewl q
+    treeify (_, (e1 : e2 : _)) | e2 < e1 =
+        error "frequency table out of order"
     treeify (q, h) = treeify (q3, h2) where
         (Freq (c1, v1), qh1) = extract_min (q, h)
         (Freq (c2, v2), (q2, h2)) = extract_min qh1
@@ -157,29 +157,6 @@ decode h l0 = decode' h l0 where
     decode' (HNode left _) (False : l) = decode' left l
     decode' (HNode _ right) (True : l) = decode' right l
     decode' _ _ = error "decode of invalid bitstring"
-
--- |Transform an HTable to "canonical" form, in
--- which codes are allocated in length-lex order.
-canonizeHTable :: (Ord a) => HTable a -> HTable a
-canonizeHTable (HTable m) =
-    HTable . fromList
-           . snd
-           . foldl' recount ([], [])
-           . sort
-           . map (\(sym, code) -> (length code, sym))
-           . toList $ m
-    where
-        recount (cur, l) (cl, sym)
-            | length cur == cl = (incl cur, (sym, cur) : l)
-            | otherwise =
-                let cur' = cur ++ replicate (cl - length cur) False in
-                    (incl cur', (sym, cur') : l)
-        incl l = addend where
-            (_, addend) = foldl' addc (True, []) (reverse l)
-            addc (False, bits) False = (False, False : bits)
-            addc (False, bits) True = (False, True : bits)
-            addc (True, bits) False = (False, True : bits)
-            addc (True, bits) True = (True, False : bits)
 
 -- |Transform an HTable back to an HTree.  The HTable must
 -- have the property that it will produce an HTree with no
