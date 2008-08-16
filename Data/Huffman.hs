@@ -176,7 +176,7 @@ reconstructHTree :: (Ord a) => HTable a -> HTree a
 reconstructHTree (HTable m) = reconstruct . M.toList $ m where
     reconstruct [] = error "makeHTreeFromHTable on ill-formed HTable"
     reconstruct [(sym, [])] = HLeaf sym
-    reconstruct t = HNode {depth = tree_depth l `max` tree_depth r,
+    reconstruct t = HNode {depth = 1 + (tree_depth l `max` tree_depth r),
                            left = l,
                            right = r}
         where
