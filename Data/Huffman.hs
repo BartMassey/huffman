@@ -33,9 +33,9 @@ import Data.Function
 
 -- |The Huffman decoding tree.
 
-data HTree a = HNode (HTree a) (HTree a) -- ^ The left child is
-                                         -- taken when False
-                                         -- and the right child when True.
+data HTree a = HNode { depth :: Int,  -- ^ Length of longest path
+                       left :: HTree a, -- ^ Child for False == 0
+                       right :: HTree a } -- ^ Child for True == 1
              | HLeaf a -- ^ The leaves are the encoded symbols.
              deriving (Eq, Show)
 
@@ -58,10 +58,11 @@ instance (Integral a, Show b) => Show (Freq a b) where
 -- |Ordering of Huffman trees is lexicographic by height,
 -- then by leaf symbol ordering.
 instance (Ord a) => Ord (HTree a) where
-    HLeaf _ `compare` HNode _ _ = LT
-    HNode _ _ `compare` HLeaf _ = GT
+    HLeaf _ `compare` HNode {} = LT
+    HNode {} `compare` HLeaf _ = GT
     HLeaf l1 `compare` HLeaf l2 = l1 `compare` l2
-    HNode l1 r1 `compare` HNode l2 r2 = (l1, r1) `compare` (l2, r2)
+    n1 `compare` n2 = (depth n1, left n1, right n1) `compare`
+                      (depth n2, left n2, right n2)
 
 -- |Ordering of frequency table entries is by increasing frequency,
 -- then by lexicographic ordering of trees.
@@ -106,6 +107,9 @@ recount m' f = result where
         Freq (round (fromIntegral m' * fromIntegral c / fromIntegral m), t)
     result = if m <= fromIntegral m' then map coerce f else map rescale f
 
+tree_depth (HLeaf _) = 0
+tree_depth (HNode {depth = d}) = d
+
 -- |Compile a Huffman decoding tree.
 makeHTree :: (Integral a, Ord b)
           => [Freq a b] -- ^Frequency table.  Must be in
@@ -124,7 +128,10 @@ makeHTree l = treeify (Q.empty, l) where
     treeify (q, h) = treeify (q3, h2) where
         (Freq (c1, v1), qh1) = extract_min (q, h)
         (Freq (c2, v2), (q2, h2)) = extract_min qh1
-        q3 = q2 |> Freq (c1 + c2, HNode v2 v1)
+        q3 = q2 |> Freq (c1 + c2, n3)
+        n3 = HNode { depth = 1 + (max `on` tree_depth) v1 v2,
+                     left = v1 `min` v2,
+                     right = v1 `max` v2 }
 
 -- |Compile a Huffman encoding table.
 makeHTable :: (Ord a)
@@ -132,7 +139,8 @@ makeHTable :: (Ord a)
            -> HTable a -- ^Huffman encoding table.
 makeHTable t = HTable (walk M.empty [] t) where
     walk h p (HLeaf l) = M.insert l (reverse p) h
-    walk h p (HNode l r) = walk (walk h (False : p) l) (True : p) r
+    walk h p (HNode {left = l, right = r}) =
+        walk (walk h (False : p) l) (True : p) r
 
 -- |Huffman-encode a list of symbols.
 encode :: (Ord a)
@@ -151,11 +159,11 @@ decode :: (Show a)
        -> [Bool] -- ^Code-string.
        -> [a] -- ^Decoded symbols.
 decode h [] = []
-decode h l0 = decode' h l0 where
+decode h c0 = decode' h c0 where
     --- XXX reset the tree when emitting a symbol
-    decode' (HLeaf s) l = s : decode h l
-    decode' (HNode left _) (False : l) = decode' left l
-    decode' (HNode _ right) (True : l) = decode' right l
+    decode' (HLeaf s) c = s : decode h c
+    decode' (HNode {left = l}) (False : c) = decode' l c
+    decode' (HNode {right = r}) (True : c) = decode' r c
     decode' _ _ = error "decode of invalid bitstring"
 
 -- |Transform an HTable back to an HTree.  The HTable must
@@ -168,11 +176,15 @@ reconstructHTree :: (Ord a) => HTable a -> HTree a
 reconstructHTree (HTable m) = reconstruct . M.toList $ m where
     reconstruct [] = error "makeHTreeFromHTable on ill-formed HTable"
     reconstruct [(sym, [])] = HLeaf sym
-    reconstruct l = (HNode `on` reconstruct) left right where
-        (left, right) = foldl' split ([], []) l
-        split (l, r) (sym, bit : bits)
-            | bit = (l, (sym, bits) : r)
-            | otherwise = ((sym, bits) : l, r)
+    reconstruct t = HNode {depth = tree_depth l `max` tree_depth r,
+                           left = l,
+                           right = r}
+        where
+          (l', r') = foldl' split ([], []) t
+          (l, r) = (reconstruct l', reconstruct r')
+          split (l, r) (sym, bit : bits)
+              | bit = (l, (sym, bits) : r)
+              | otherwise = ((sym, bits) : l, r)
 
 --- Redistribution and use in source and binary forms, with or
 --- without modification, are permitted provided that the
