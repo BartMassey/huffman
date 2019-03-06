@@ -52,7 +52,7 @@ instance (Show a, Ord a) => Show (HTable a) where
 newtype (Integral a) => Freq a b = Freq (a, HTree b)
     deriving Eq
 
-instance (Integral a, Show b) => Show (Freq a b) where
+instance (Integral a, Show a, Show b) => Show (Freq a b) where
     show (Freq (n, HLeaf s)) = show (n, s)
 
 -- |Ordering of Huffman trees is lexicographic by height,
