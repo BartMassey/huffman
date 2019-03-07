@@ -7,13 +7,12 @@ experimentation.
 
 Included are file compression and decompression utilities
 that exercises the codebase.  Performance is slower than but
-comparable to bzip2.  On my laptop (Pentium M 1.6GHz with
-1GB RAM) bzip2 takes 0.9 seconds to compress the text of
-Moby Dick, producing a 382KB file from a 1243KB original.
-My hencode utility takes 3.8 seconds to compress this file,
-producing a 713KB compressed file (including a 0.5KB
-decompression table). Decompression with hdecode takes 2.4
-seconds, vs 0.4 seconds for bzip2.
+comparable to bzip2.  On my home box (Intel Core 4) bzip2
+takes 100ms to compress the text of Moby Dick, producing a
+389KB file from a 1276KB original.  My hencode utility takes
+340ms to compress this file, producing a 740KB compressed
+file. Decompression with hdecode takes 190ms seconds, vs
+40ms for bzip2.
 
 The plan for this program was to enhance the Huffman code
 module such that it ccould be used as a basis for an
